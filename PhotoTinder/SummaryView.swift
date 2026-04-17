@@ -1,22 +1,29 @@
 import SwiftUI
 
 struct SummaryView: View {
-    @Environment(PhotoViewModel.self) var viewModel
+    @Environment(PhotoViewModel.self) var viewModel // 确保这里使用的是 .self 且类型正确
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 60)).foregroundColor(.green)
-            Text("筛选完成！").font(.title).bold()
+        VStack(spacing: 30) {
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 80)).foregroundColor(.green)
+            Text("本月照片已阅完").font(.title2.bold())
             
             if let group = viewModel.currentGroup {
-                Text("待删除照片: \(group.deleteCount) 张").foregroundColor(.red)
-                Button("立即执行批量删除") {
-                    Task { await viewModel.commitDeletion(); dismiss() }
+                VStack(spacing: 10) {
+                    Text("待删除: \(group.deleteCount) 张").foregroundColor(.red)
+                    Text("保留: \(group.items.count - group.deleteCount) 张").foregroundColor(.green)
                 }
-                .buttonStyle(.borderedProminent).tint(.red).controlSize(.large)
             }
-            Button("稍后处理") { dismiss() }.secondary()
+            
+            Button("查看回收站并处理") {
+                // 这个按钮可以触发跳转或直接在 ReviewView 中通过 toolbar 查看
+                dismiss() 
+            }
+            .buttonStyle(.borderedProminent)
+            
+            Button("返回主列表") { dismiss() }.foregroundColor(.secondary)
         }
+        .padding()
     }
 }
