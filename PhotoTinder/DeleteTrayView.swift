@@ -5,7 +5,7 @@ struct DeleteTrayView: View {
     @Environment(PhotoViewModel.self) var viewModel
     @Environment(\.dismiss) var dismiss
     
-    @State private var selectedIDs = Set<String>()
+    @State private var selectedIDs: Set<String> = []
     @State private var isEditMode = false
     @State private var detailItem: PhotoItem? = nil
     
@@ -18,21 +18,17 @@ struct DeleteTrayView: View {
                     let deleteItems = group.items.filter { $0.status == .delete }
                     
                     if deleteItems.isEmpty {
-                        VStack {
-                            Spacer()
-                            Image(systemName: "trash").font(.largeTitle).foregroundColor(.gray)
-                            Text("回收站为空")
-                            Spacer()
-                        }
+                        ContentUnavailableView("回收站为空", systemImage: "trash")
                     } else {
                         if isEditMode {
                             HStack {
                                 Button(selectedIDs.count == deleteItems.count ? "取消全选" : "全选") {
-                                    selectedIDs = selectedIDs.count == deleteItems.count ? [] : Set(deleteItems.map { $0.id })
+                                    if selectedIDs.count == deleteItems.count { selectedIDs = [] }
+                                    else { selectedIDs = Set(deleteItems.map { $0.id }) }
                                 }
                                 Spacer()
-                                Text("已选 \(selectedIDs.count) 张")
-                            }.padding()
+                                Text("已选 \(selectedIDs.count) 张").font(.caption).foregroundColor(.secondary)
+                            }.padding(.horizontal)
                         }
 
                         ScrollView {
@@ -60,20 +56,30 @@ struct DeleteTrayView: View {
             }
             .navigationTitle("回收站")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button(isEditMode ? "取消" : "多选") { isEditMode.toggle(); selectedIDs = [] } }
+                ToolbarItem(placement: .topBarLeading) { 
+                    Button(isEditMode ? "取消" : "选择") { 
+                        isEditMode.toggle()
+                        selectedIDs = []
+                    } 
+                }
                 ToolbarItem(placement: .topBarTrailing) { Button("关闭") { dismiss() } }
                 
                 if isEditMode {
                     ToolbarItemGroup(placement: .bottomBar) {
-                        Button("恢复") { viewModel.restoreItems(selectedIDs); selectedIDs = []; isEditMode = false }.disabled(selectedIDs.isEmpty)
+                        Button("恢复") { 
+                            viewModel.restoreItems(selectedIDs)
+                            isEditMode = false
+                        }.disabled(selectedIDs.isEmpty)
                         Spacer()
                         Button("彻底删除", role: .destructive) {
-                            Task { await viewModel.deleteSelectedItems(selectedIDs); selectedIDs = []; isEditMode = false }
+                            Task { 
+                                await viewModel.deleteSelectedItems(selectedIDs)
+                                isEditMode = false
+                            }
                         }.disabled(selectedIDs.isEmpty)
                     }
                 }
             }
-            // 弹出大图预览
             .fullScreenCover(item: $detailItem) { item in
                 BigPhotoView(item: item)
             }
@@ -84,14 +90,15 @@ struct DeleteTrayView: View {
 struct BigPhotoView: View {
     let item: PhotoItem
     @Environment(\.dismiss) var dismiss
-    @State private var image: UIImage?
+    @State private var bigImage: UIImage? = nil
     
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            if let image = image {
-                Image(uiImage: image).resizable().scaledToFit()
+            if let bigImage = bigImage {
+                Image(uiImage: bigImage).resizable().scaledToFit()
             } else { ProgressView().tint(.white) }
+            
             VStack {
                 HStack {
                     Button { dismiss() } label: { Image(systemName: "xmark.circle.fill").font(.largeTitle).foregroundColor(.white.opacity(0.7)) }
@@ -103,9 +110,9 @@ struct BigPhotoView: View {
         .onAppear {
             let options = PHImageRequestOptions()
             options.isNetworkAccessAllowed = true
-            // 修复点：显式双参数闭包
-            PHImageManager.default().requestImage(for: item.asset, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: options) { (img: UIImage?, info: [AnyHashable: Any]?) in
-                self.image = img
+            // 修正闭包参数：(UIImage?, [AnyHashable: Any]?)
+            PHImageManager.default().requestImage(for: item.asset, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: options) { (img: UIImage?, _: [AnyHashable: Any]?) in
+                self.bigImage = img
             }
         }
     }
