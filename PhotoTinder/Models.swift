@@ -5,8 +5,9 @@ enum ReviewStatus {
     case unreviewed, keep, delete
 }
 
+// 确保这里有 Identifiable
 struct PhotoItem: Identifiable, Equatable {
-    let id: String
+    let id: String // 这里作为 ID
     let asset: PHAsset
     var status: ReviewStatus = .unreviewed
     
