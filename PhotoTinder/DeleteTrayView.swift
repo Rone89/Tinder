@@ -18,10 +18,10 @@ struct DeleteTrayView: View {
                     let deleteItems = group.items.filter { $0.status == .delete }
                     
                     if deleteItems.isEmpty {
-                        VStack(spacing: 20) {
+                        VStack {
                             Spacer()
                             Image(systemName: "trash").font(.largeTitle).foregroundColor(.gray)
-                            Text("回收站为空").foregroundColor(.secondary)
+                            Text("回收站为空")
                             Spacer()
                         }
                     } else {
@@ -31,7 +31,7 @@ struct DeleteTrayView: View {
                                     selectedIDs = selectedIDs.count == deleteItems.count ? [] : Set(deleteItems.map { $0.id })
                                 }
                                 Spacer()
-                                Text("已选 \(selectedIDs.count) 张").foregroundColor(.secondary)
+                                Text("已选 \(selectedIDs.count) 张")
                             }.padding()
                         }
 
@@ -73,7 +73,10 @@ struct DeleteTrayView: View {
                     }
                 }
             }
-            .fullScreenCover(item: $detailItem) { item in BigPhotoView(item: item) }
+            // 弹出大图预览
+            .fullScreenCover(item: $detailItem) { item in
+                BigPhotoView(item: item)
+            }
         }
     }
 }
@@ -90,14 +93,20 @@ struct BigPhotoView: View {
                 Image(uiImage: image).resizable().scaledToFit()
             } else { ProgressView().tint(.white) }
             VStack {
-                HStack { Button { dismiss() } label: { Image(systemName: "xmark.circle.fill").font(.largeTitle).foregroundColor(.white.opacity(0.7)) }; Spacer() }
+                HStack {
+                    Button { dismiss() } label: { Image(systemName: "xmark.circle.fill").font(.largeTitle).foregroundColor(.white.opacity(0.7)) }
+                    Spacer()
+                }
                 Spacer()
             }.padding()
         }
         .onAppear {
             let options = PHImageRequestOptions()
             options.isNetworkAccessAllowed = true
-            PHImageManager.default().requestImage(for: item.asset, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: options) { img, _ in self.image = img }
+            // 修复点：显式双参数闭包
+            PHImageManager.default().requestImage(for: item.asset, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFit, options: options) { (img: UIImage?, info: [AnyHashable: Any]?) in
+                self.image = img
+            }
         }
     }
 }
